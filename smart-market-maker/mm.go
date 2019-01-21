@@ -3,7 +3,7 @@ package mm
 import "fmt"
 
 // MMContract is simulate of smart contract
-// Base on formula: (BalanceOfETH + ethAmount) * (BalanceOfDai - daiAmount) = BalanceOfETH * BalanceOfDAI
+// formula: (BalanceOfETH + ethAmount) * (BalanceOfDai - daiAmount) = BalanceOfETH * BalanceOfDAI
 // @ProductValue = BalanceOfETH * BalanceOfDAI
 // @increaseFactor
 type MMContract struct {
