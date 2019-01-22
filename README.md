@@ -2,5 +2,5 @@
 
 Rapid verification of feasibility.
 
-### smart-market-maker
-Deposit your token in market maker contract, auto increase value.
+### smart-market-maker([link](smart-market-maker/README.md))
+Deposit your token in market maker contract, auto value growth.

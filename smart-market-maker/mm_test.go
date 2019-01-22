@@ -7,7 +7,7 @@ import (
 )
 
 func TestETHtoDAI(t *testing.T) {
-	contract := NewMMContract(1000, 128000)
+	contract := NewMMContract(1000, 128000, 100)
 
 	ethAmount := 1.0
 	daiAmount := 0.0
@@ -25,7 +25,7 @@ func TestETHtoDAI(t *testing.T) {
 }
 
 func TestDAItoETH(t *testing.T) {
-	contract := NewMMContract(1000, 128000)
+	contract := NewMMContract(1000, 128000, 100)
 
 	ethAmount := 0.0
 	daiAmount := 100.0
@@ -43,7 +43,7 @@ func TestDAItoETH(t *testing.T) {
 }
 
 func TestEstimate(t *testing.T) {
-	contract := NewMMContract(1000, 128000)
+	contract := NewMMContract(1000, 128000, 100)
 
 	estETH1 := contract.EstimateDAItoETH(100)
 	estETH2 := contract.EstimateDAItoETH(1000)
@@ -59,7 +59,7 @@ func TestEstimate(t *testing.T) {
 }
 
 func TestBigTrade(t *testing.T) {
-	contract := NewMMContract(1000, 128000)
+	contract := NewMMContract(1000, 128000, 100)
 
 	contract.DAItoETH(1e30)
 	assert.True(t, true, contract.BalanceOfETH > 0)
@@ -67,10 +67,48 @@ func TestBigTrade(t *testing.T) {
 	assert.True(t, true, contract.BalanceOfETH > 0)
 }
 
+func TestInitPrice(t *testing.T) {
+	contract := NewMMContract(1000, 128000, 110)
+
+	assert.True(t, true, contract.EstimateDAItoETH(1) < 110)
+	assert.True(t, true, 1/contract.EstimateDAItoETH(1) > 110)
+}
+
+func TestDespoit(t *testing.T) {
+	contract := NewMMContract(1000, 128000, 128)
+
+	contract.DepositETH(1000)
+	assert.Equal(t, 2000.0, contract.BalanceOfETH)
+	assert.Equal(t, 128.0, contract.Price())
+
+	contract.DepositDAI(128000)
+	assert.Equal(t, 256000.0, contract.BalanceOfDAI)
+	assert.Equal(t, 128.0, contract.Price())
+	assert.Equal(t, 1.0, contract.positionOffset)
+}
+
+func TestWithdraw(t *testing.T) {
+	contract := NewMMContract(1000, 128000, 128)
+
+	contract.WithdrawETH(500)
+	assert.Equal(t, 500.0, contract.BalanceOfETH)
+	assert.Equal(t, 128.0, contract.Price())
+
+	contract.WithdrawDAI(64000)
+	assert.Equal(t, 64000.0, contract.BalanceOfDAI)
+	assert.Equal(t, 128.0, contract.Price())
+	assert.Equal(t, 1.0, contract.positionOffset)
+
+	contract.WithdrawETH(501)
+	assert.Equal(t, 500.0, contract.BalanceOfETH)
+}
+
 // func TestTrade(t *testing.T) {
-// 	contract := NewMMContract(1000, 128000)
+// 	contract := NewMMContract(10, 1280, 0)
+// 	fmt.Println(contract)
+
 // 	daiCount := float64(0)
-// 	for i := 0; i < 10; i++ {
+// 	for i := 0; i < 100; i++ {
 // 		dai := contract.ETHtoDAI(10)
 // 		daiCount += dai
 // 		fmt.Println(contract)
@@ -79,8 +117,8 @@ func TestBigTrade(t *testing.T) {
 // 	fmt.Println(daiCount)
 
 // 	ethCount := float64(0)
-// 	for i := 0; i < 10; i++ {
-// 		eth := contract.DAItoETH(daiCount / 10)
+// 	for i := 0; i < 100; i++ {
+// 		eth := contract.DAItoETH(daiCount / 100)
 // 		ethCount += eth
 // 		fmt.Println(contract)
 // 		fmt.Println(eth)
