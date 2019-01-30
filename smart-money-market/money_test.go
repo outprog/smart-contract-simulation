@@ -22,15 +22,15 @@ func TestSupply(t *testing.T) {
 
 	mc.Supply(amount, symbol, user)
 	assert.Equal(t, amount, mc.Markets[symbol].Supply)
-	assert.Equal(t, amount, mc.SupplyBalances[user][symbol])
+	assert.Equal(t, amount, mc.SupplyBalances[user][symbol].Principal)
 
 	mc.Supply(amount, symbol, user)
 	assert.Equal(t, amount*2, mc.Markets[symbol].Supply)
-	assert.Equal(t, amount*2, mc.SupplyBalances[user][symbol])
+	assert.Equal(t, amount*2, mc.SupplyBalances[user][symbol].Principal)
 
 	mc.Supply(amount2, symbol2, user)
 	assert.Equal(t, amount2, mc.Markets[symbol2].Supply)
-	assert.Equal(t, amount2, mc.SupplyBalances[user][symbol2])
+	assert.Equal(t, amount2, mc.SupplyBalances[user][symbol2].Principal)
 
 	err := mc.Supply(amount3, symbol3, user)
 	assert.EqualError(t, errors.New("not support token: TFT"), err.Error())
@@ -57,13 +57,13 @@ func TestBorrow(t *testing.T) {
 	err = mc.Borrow(amount2, symbol, user2)
 	assert.NoError(t, err)
 	assert.Equal(t, amount2, mc.Markets[symbol].Borrow)
-	assert.Equal(t, amount2, mc.BorrowBalances[user2][symbol])
+	assert.Equal(t, amount2, mc.BorrowBalances[user2][symbol].Principal)
 
 	// borrow again
 	err = mc.Borrow(amount2, symbol, user2)
 	assert.NoError(t, err)
 	assert.Equal(t, amount2*2, mc.Markets[symbol].Borrow)
-	assert.Equal(t, amount2*2, mc.BorrowBalances[user2][symbol])
+	assert.Equal(t, amount2*2, mc.BorrowBalances[user2][symbol].Principal)
 }
 
 func TestRateCollection(t *testing.T) {

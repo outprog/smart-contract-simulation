@@ -6,7 +6,13 @@ import (
 
 type tUser = string
 type tSymbol = string
-type balance = float64
+
+// Balance is recent balance after most recent balance-changing action
+// @Principal total balance with accrued interest after applying the customer's most recent balance-changing action
+type Balance struct {
+	Principal   float64
+	BlockNumber uint64
+}
 
 // RateCollection saved rate event with block number
 type RateCollection struct {
@@ -27,8 +33,8 @@ type Market struct {
 // MoneyContact
 // @BlockNumber is simulate of current block number
 type MoneyContract struct {
-	SupplyBalances map[tUser]map[tSymbol]balance
-	BorrowBalances map[tUser]map[tSymbol]balance
+	SupplyBalances map[tUser]map[tSymbol]Balance
+	BorrowBalances map[tUser]map[tSymbol]Balance
 
 	Markets map[tSymbol]Market
 
@@ -45,8 +51,8 @@ func New() *MoneyContract {
 		BaseRate: 0.05,
 	}
 	return &MoneyContract{
-		SupplyBalances: map[tUser]map[tSymbol]balance{},
-		BorrowBalances: map[tUser]map[tSymbol]balance{},
+		SupplyBalances: map[tUser]map[tSymbol]Balance{},
+		BorrowBalances: map[tUser]map[tSymbol]Balance{},
 		Markets: map[tSymbol]Market{
 			"ETH": ethMarket,
 			"DAI": daiMarket,
@@ -65,13 +71,14 @@ func (m *MoneyContract) Supply(amount float64, symbol string, user string) error
 
 	// update user supply
 	if supply, ok := m.SupplyBalances[user]; ok {
-		if _, ok := supply[symbol]; ok {
-			m.SupplyBalances[user][symbol] += amount
+		if balance, ok := supply[symbol]; ok {
+			balance.Principal += amount
+			m.SupplyBalances[user][symbol] = balance
 		} else {
-			supply[symbol] = amount
+			supply[symbol] = Balance{amount, m.BlockNumber}
 		}
 	} else {
-		m.SupplyBalances[user] = map[tSymbol]float64{symbol: amount}
+		m.SupplyBalances[user] = map[tSymbol]Balance{symbol: Balance{amount, m.BlockNumber}}
 	}
 
 	// update market supply
@@ -96,13 +103,14 @@ func (m *MoneyContract) Borrow(amount float64, symbol string, user string) error
 
 	// update user borrow
 	if borrow, ok := m.BorrowBalances[user]; ok {
-		if _, ok := borrow[symbol]; ok {
-			m.BorrowBalances[user][symbol] += amount
+		if balance, ok := borrow[symbol]; ok {
+			balance.Principal += amount
+			m.BorrowBalances[user][symbol] = balance
 		} else {
-			borrow[symbol] = amount
+			borrow[symbol] = Balance{amount, m.BlockNumber}
 		}
 	} else {
-		m.BorrowBalances[user] = map[tSymbol]float64{symbol: amount}
+		m.BorrowBalances[user] = map[tSymbol]Balance{symbol: Balance{amount, m.BlockNumber}}
 	}
 
 	// update market borrow
