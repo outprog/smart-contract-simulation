@@ -8,30 +8,50 @@ type tUser = string
 type tSymbol = string
 type balance = float64
 
-// Market is token ledger
-type Market struct {
-	supply float64
-	borrow float64
-	growth float64
+// RateCollection saved rate event with block number
+type RateCollection struct {
+	SupplyRate  float64
+	BorrowRate  float64
+	BlockNumber uint64
 }
 
+// Market is token ledger
+type Market struct {
+	Supply float64
+	Borrow float64
+
+	BaseRate float64
+	RateList []RateCollection
+}
+
+// MoneyContact
+// @BlockNumber is simulate of current block number
 type MoneyContract struct {
 	SupplyBalances map[tUser]map[tSymbol]balance
 	BorrowBalances map[tUser]map[tSymbol]balance
 
-	Markets        map[tSymbol]Market
-	InitBorrowRate float64
+	Markets map[tSymbol]Market
+
+	BlockNumber uint64
 }
 
 func New() *MoneyContract {
+	ethMarket := Market{
+		RateList: []RateCollection{},
+		BaseRate: 0.05,
+	}
+	daiMarket := Market{
+		RateList: []RateCollection{},
+		BaseRate: 0.05,
+	}
 	return &MoneyContract{
 		SupplyBalances: map[tUser]map[tSymbol]balance{},
 		BorrowBalances: map[tUser]map[tSymbol]balance{},
 		Markets: map[tSymbol]Market{
-			"ETH": Market{},
-			"DAI": Market{},
+			"ETH": ethMarket,
+			"DAI": daiMarket,
 		},
-		InitBorrowRate: 0.05,
+		BlockNumber: 1,
 	}
 }
 
@@ -55,10 +75,10 @@ func (m *MoneyContract) Supply(amount float64, symbol string, user string) error
 	}
 
 	// update market supply
-	market.supply += amount
+	market.Supply += amount
 	m.Markets[symbol] = market
 
-	return nil
+	return m.calculateRate(symbol)
 }
 
 func (m *MoneyContract) Borrow(amount float64, symbol string, user string) error {
@@ -70,7 +90,7 @@ func (m *MoneyContract) Borrow(amount float64, symbol string, user string) error
 	}
 
 	// check cash
-	if cash := market.supply - market.borrow; cash < amount {
+	if cash := market.Supply - market.Borrow; cash < amount {
 		return fmt.Errorf("not enough cash: %v", cash)
 	}
 
@@ -86,8 +106,34 @@ func (m *MoneyContract) Borrow(amount float64, symbol string, user string) error
 	}
 
 	// update market borrow
-	market.borrow += amount
+	market.Borrow += amount
 	m.Markets[symbol] = market
 
+	return m.calculateRate(symbol)
+}
+
+func (m *MoneyContract) calculateRate(symbol string) error {
+	// check market
+	var market Market
+	var ok bool
+	if market, ok = m.Markets[symbol]; !ok {
+		return fmt.Errorf("not support token: %v", symbol)
+	}
+
+	// init rate collection
+	rateCollection := RateCollection{
+		SupplyRate:  0,
+		BorrowRate:  0,
+		BlockNumber: m.BlockNumber,
+	}
+
+	// had borrow, calculate rate
+	if market.Borrow != 0.0 {
+		rateCollection.BorrowRate = market.BaseRate
+		rateCollection.SupplyRate = (market.Borrow * rateCollection.BorrowRate) / market.Supply
+	}
+
+	market.RateList = append(market.RateList, rateCollection)
+	m.Markets[symbol] = market
 	return nil
 }
