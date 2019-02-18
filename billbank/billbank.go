@@ -35,24 +35,47 @@ func (b *Billbank) Deposit(amount float64, symbol string) error {
 		return fmt.Errorf("not support token: %v", symbol)
 	}
 
+	// liquidate supply
+
 	// update pool
-	bill := 0.0
-	if pool.SupplyBill == 0 {
-		bill = amount
-	} else {
+	bill := amount
+	if pool.SupplyBill != 0 && pool.Supply != 0 {
 		bill = amount * (pool.SupplyBill / pool.Supply)
 	}
 	pool.SupplyBill += bill
 	pool.Supply += amount
-
 	b.Pools[symbol] = pool
+
 	// send bill to user
 	// sendBill(user, bill)
 
 	return nil
 }
 
-func (b *Billbank) Withdraw(amount float64, symbol string) error {
+func (b *Billbank) Withdraw(bill float64, symbol string) error {
+	// check pool
+	var pool TokenPool
+	var ok bool
+	if pool, ok = b.Pools[symbol]; !ok {
+		return fmt.Errorf("not support token: %v", symbol)
+	}
+
+	// liquidate supply
+
+	// check balance of supply
+	amount := bill * (pool.Supply / pool.SupplyBill)
+	if bill > pool.SupplyBill || amount > pool.Supply {
+		return fmt.Errorf("not enough token: %v > %v", amount, pool.Supply)
+	}
+
+	// update pool
+	pool.SupplyBill -= bill
+	pool.Supply -= amount
+	b.Pools[symbol] = pool
+
+	// send token to user
+	// sendToken(user, amount)
+
 	return nil
 }
 
