@@ -5,7 +5,9 @@ import (
 	"log"
 )
 
+type tUser = string
 type tSymbol = string
+type tBill = float64
 
 type TokenPool struct {
 	SupplyBill float64
@@ -22,6 +24,8 @@ func (t *TokenPool) GetCash() float64 {
 }
 
 type Billbank struct {
+	AccountBills map[tUser]map[tSymbol]tBill
+
 	Pools map[tSymbol]TokenPool
 
 	// BlockNumber simulate
@@ -32,6 +36,7 @@ type Billbank struct {
 
 func New() *Billbank {
 	return &Billbank{
+		AccountBills: map[tUser]map[tSymbol]tBill{},
 		Pools: map[tSymbol]TokenPool{
 			"ETH": TokenPool{},
 			"DAI": TokenPool{},
@@ -41,48 +46,66 @@ func New() *Billbank {
 	}
 }
 
-func (b *Billbank) Deposit(amount float64, symbol string) error {
+func (b *Billbank) Deposit(amount float64, symbol, user string) error {
 	b.liquidate(symbol)
 	pool := b.getPool(symbol)
 
-	// liquidate supply
-
-	// update pool
+	// calcuate bill
 	bill := amount
 	if pool.SupplyBill != 0 && pool.Supply != 0 {
 		bill = amount * (pool.SupplyBill / pool.Supply)
 	}
+
+	// update user account bill
+	if accountBill, ok := b.AccountBills[user]; ok {
+		if _, ok := accountBill[symbol]; ok {
+			b.AccountBills[user][symbol] += bill
+		} else {
+			b.AccountBills[user][symbol] = bill
+		}
+	} else {
+		b.AccountBills[user] = map[tSymbol]tBill{symbol: bill}
+	}
+
+	// update pool
 	pool.SupplyBill += bill
 	pool.Supply += amount
 	b.Pools[symbol] = pool
 
-	// send bill to user
-	// sendBill(user, bill)
-
 	return nil
 }
 
-func (b *Billbank) Withdraw(bill float64, symbol string) error {
+func (b *Billbank) Withdraw(bill float64, symbol, user string) (amount float64, err error) {
 	b.liquidate(symbol)
 	pool := b.getPool(symbol)
 
-	// liquidate supply
-
-	// check balance of supply
-	amount := bill * (pool.Supply / pool.SupplyBill)
-	if bill > pool.SupplyBill || amount > pool.Supply {
-		return fmt.Errorf("not enough token for withdraw. amount: %v, supply %v", amount, pool.Supply)
+	// check bill
+	if _, ok := b.AccountBills[user]; !ok {
+		return 0, fmt.Errorf("user not had deposit. user: %v", user)
 	}
+	if _, ok := b.AccountBills[user][symbol]; !ok {
+		return 0, fmt.Errorf("user not had deposit. user: %v, token: %v", user, symbol)
+	}
+	if bill > b.AccountBills[user][symbol] {
+		return 0, fmt.Errorf("not enough bill for withdraw. user: %v, acutal bill: %v", user, b.AccountBills[user][symbol])
+	}
+	// check balance of supply
+	if amount > pool.GetCash() {
+		return 0, fmt.Errorf("not enough token for withdraw. amount: %v, cash %v", amount, pool.GetCash())
+	}
+
+	// calcuate amount
+	amount = bill * (pool.Supply / pool.SupplyBill)
+
+	// update user account bill
+	b.AccountBills[user][symbol] -= bill
 
 	// update pool
 	pool.SupplyBill -= bill
 	pool.Supply -= amount
 	b.Pools[symbol] = pool
 
-	// send token to user
-	// sendToken(user, amount)
-
-	return nil
+	return
 }
 
 func (b *Billbank) Borrow(amount float64, symbol string) error {
@@ -91,7 +114,7 @@ func (b *Billbank) Borrow(amount float64, symbol string) error {
 
 	// check cash of pool
 	if amount > pool.GetCash() {
-		return fmt.Errorf("not enough token for borrow. amount: %v, cash: %v", amount, pool.Supply-pool.Borrow)
+		return fmt.Errorf("not enough token for borrow. amount: %v, cash: %v", amount, pool.GetCash())
 	}
 
 	// update borrow
