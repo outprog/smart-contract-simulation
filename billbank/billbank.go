@@ -142,6 +142,26 @@ func (b *Billbank) Borrow(amount float64, symbol, user string) error {
 
 func (b *Billbank) Repay(amount float64, symbol, user string) error {
 	b.liquidate(symbol)
+	pool := b.getPool(symbol)
+
+	// check borrow
+	if _, ok := b.AccountBorrows[user]; !ok {
+		return fmt.Errorf("user not had borrow. user: %v", user)
+	}
+	if _, ok := b.AccountBorrows[user][symbol]; !ok {
+		return fmt.Errorf("user not had borrow. user: %v, token: %v", user, symbol)
+	}
+	if amount > b.AccountBorrows[user][symbol] {
+		return fmt.Errorf("too much amount to repay. user: %v, need repay: %v", user, b.AccountBorrows[user][symbol])
+	}
+
+	// update user account borrow
+	b.AccountBorrows[user][symbol] -= amount
+
+	// update borrow
+	pool.Borrow -= amount
+	b.Pools[symbol] = pool
+
 	return nil
 }
 

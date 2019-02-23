@@ -1,7 +1,6 @@
 package billbank
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -39,10 +38,10 @@ func TestWithdraw(t *testing.T) {
 	assert.Equal(t, 100.0, b.Pools["ETH"].SupplyBill)
 
 	_, err := b.Withdraw(1.0, "ETH", "bob")
-	assert.EqualError(t, errors.New("user not had deposit. user: bob"), err.Error())
+	assert.EqualError(t, err, "user not had deposit. user: bob")
 
 	_, err = b.Withdraw(101.0, "ETH", "alice")
-	assert.EqualError(t, errors.New("not enough bill for withdraw. user: alice, acutal bill: 100"), err.Error())
+	assert.EqualError(t, err, "not enough bill for withdraw. user: alice, acutal bill: 100")
 
 	b.Withdraw(99.0, "ETH", "alice")
 	assert.Equal(t, 1.0, b.Pools["ETH"].Supply)
@@ -54,7 +53,7 @@ func TestBorrow(t *testing.T) {
 	b := New()
 
 	err := b.Borrow(10.0, "ETH", "bob")
-	assert.EqualError(t, errors.New("not enough token for borrow. amount: 10, cash: 0"), err.Error())
+	assert.EqualError(t, err, "not enough token for borrow. amount: 10, cash: 0")
 
 	b.Deposit(100.0, "ETH", "alice")
 
@@ -69,7 +68,28 @@ func TestBorrow(t *testing.T) {
 	assert.Equal(t, 23.0, b.AccountBorrows["bob"]["ETH"])
 }
 
-func TestLiquidate(t *testing.T) {
+func TestRepay(t *testing.T) {
+	b := New()
+
+	err := b.Repay(10.0, "ETH", "bob")
+	assert.EqualError(t, err, "user not had borrow. user: bob")
+
+	b.Deposit(20.0, "ETH", "alice")
+	b.Borrow(10.0, "ETH", "bob")
+
+	err = b.Repay(11.0, "ETH", "bob")
+	assert.EqualError(t, err, "too much amount to repay. user: bob, need repay: 10")
+
+	b.Repay(4.0, "ETH", "bob")
+	assert.Equal(t, 6.0, b.AccountBorrows["bob"]["ETH"])
+	assert.Equal(t, 6.0, b.Pools["ETH"].Borrow)
+
+	b.Repay(6.0, "ETH", "bob")
+	assert.Equal(t, 0.0, b.AccountBorrows["bob"]["ETH"])
+	assert.Equal(t, 0.0, b.Pools["ETH"].Borrow)
+}
+
+func TestLiquidateTokenPool(t *testing.T) {
 	b := New()
 	b.borrowRate = 0.01
 
