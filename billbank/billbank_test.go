@@ -61,6 +61,12 @@ func TestBorrow(t *testing.T) {
 	err = b.Borrow(10.0, "ETH", "bob")
 	assert.NoError(t, err)
 	assert.Equal(t, 10.0, b.Pools["ETH"].Borrow)
+	assert.Equal(t, 10.0, b.AccountBorrows["bob"]["ETH"])
+
+	err = b.Borrow(13.0, "ETH", "bob")
+	assert.NoError(t, err)
+	assert.Equal(t, 23.0, b.Pools["ETH"].Borrow)
+	assert.Equal(t, 23.0, b.AccountBorrows["bob"]["ETH"])
 }
 
 func TestLiquidate(t *testing.T) {
