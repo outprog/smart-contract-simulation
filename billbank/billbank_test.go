@@ -12,22 +12,22 @@ func TestDeposit(t *testing.T) {
 	b.Deposit(100.0, "ETH", "alice")
 	assert.Equal(t, 100.0, b.Pools["ETH"].Supply)
 	assert.Equal(t, 100.0, b.Pools["ETH"].SupplyBill)
-	assert.Equal(t, 100.0, b.AccountBills["alice"]["ETH"])
+	assert.Equal(t, 100.0, b.AccountDepositBills["alice"]["ETH"])
 
 	b.Deposit(101.0, "ETH", "bob")
 	assert.Equal(t, 201.0, b.Pools["ETH"].Supply)
 	assert.Equal(t, 201.0, b.Pools["ETH"].SupplyBill)
-	assert.Equal(t, 101.0, b.AccountBills["bob"]["ETH"])
+	assert.Equal(t, 101.0, b.AccountDepositBills["bob"]["ETH"])
 
 	b.Deposit(101.0, "DAI", "alice")
 	assert.Equal(t, 101.0, b.Pools["DAI"].Supply)
 	assert.Equal(t, 101.0, b.Pools["DAI"].SupplyBill)
-	assert.Equal(t, 101.0, b.AccountBills["alice"]["DAI"])
+	assert.Equal(t, 101.0, b.AccountDepositBills["alice"]["DAI"])
 
 	b.Deposit(101.0, "DAI", "alice")
 	assert.Equal(t, 202.0, b.Pools["DAI"].Supply)
 	assert.Equal(t, 202.0, b.Pools["DAI"].SupplyBill)
-	assert.Equal(t, 202.0, b.AccountBills["alice"]["DAI"])
+	assert.Equal(t, 202.0, b.AccountDepositBills["alice"]["DAI"])
 }
 
 func TestWithdraw(t *testing.T) {
@@ -46,7 +46,7 @@ func TestWithdraw(t *testing.T) {
 	b.Withdraw(99.0, "ETH", "alice")
 	assert.Equal(t, 1.0, b.Pools["ETH"].Supply)
 	assert.Equal(t, 1.0, b.Pools["ETH"].SupplyBill)
-	assert.Equal(t, 1.0, b.AccountBills["alice"]["ETH"])
+	assert.Equal(t, 1.0, b.AccountDepositBills["alice"]["ETH"])
 }
 
 func TestBorrow(t *testing.T) {
@@ -60,12 +60,12 @@ func TestBorrow(t *testing.T) {
 	err = b.Borrow(10.0, "ETH", "bob")
 	assert.NoError(t, err)
 	assert.Equal(t, 10.0, b.Pools["ETH"].Borrow)
-	assert.Equal(t, 10.0, b.AccountBorrows["bob"]["ETH"])
+	assert.Equal(t, 10.0, b.AccountBorrowBills["bob"]["ETH"])
 
 	err = b.Borrow(13.0, "ETH", "bob")
 	assert.NoError(t, err)
 	assert.Equal(t, 23.0, b.Pools["ETH"].Borrow)
-	assert.Equal(t, 23.0, b.AccountBorrows["bob"]["ETH"])
+	assert.Equal(t, 23.0, b.AccountBorrowBills["bob"]["ETH"])
 }
 
 func TestRepay(t *testing.T) {
@@ -81,11 +81,11 @@ func TestRepay(t *testing.T) {
 	assert.EqualError(t, err, "too much amount to repay. user: bob, need repay: 10")
 
 	b.Repay(4.0, "ETH", "bob")
-	assert.Equal(t, 6.0, b.AccountBorrows["bob"]["ETH"])
+	assert.Equal(t, 6.0, b.AccountBorrowBills["bob"]["ETH"])
 	assert.Equal(t, 6.0, b.Pools["ETH"].Borrow)
 
 	b.Repay(6.0, "ETH", "bob")
-	assert.Equal(t, 0.0, b.AccountBorrows["bob"]["ETH"])
+	assert.Equal(t, 0.0, b.AccountBorrowBills["bob"]["ETH"])
 	assert.Equal(t, 0.0, b.Pools["ETH"].Borrow)
 }
 
@@ -122,5 +122,5 @@ func TestDepositInterest(t *testing.T) {
 	amount, _ := b.Withdraw(90.0, "ETH", "alice")
 	assert.Equal(t, 90.81000000000002, amount)
 	assert.Equal(t, 10.08999999999999, b.Pools["ETH"].Supply)
-	assert.Equal(t, 10.0, b.AccountBills["alice"]["ETH"])
+	assert.Equal(t, 10.0, b.AccountDepositBills["alice"]["ETH"])
 }

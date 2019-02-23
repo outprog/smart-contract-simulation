@@ -8,11 +8,11 @@ import (
 type tUser = string
 type tSymbol = string
 type tBill = float64
-type tAmount = float64
 
 type TokenPool struct {
 	SupplyBill float64
 	Supply     float64
+	BorrowBill float64
 	Borrow     float64
 
 	// last liquidate blockNumber
@@ -26,9 +26,9 @@ func (t *TokenPool) GetCash() float64 {
 
 type Billbank struct {
 	// internal account for token bill(deposit)
-	AccountBills map[tUser]map[tSymbol]tBill
-	// internal account for token amount(borrow)
-	AccountBorrows map[tUser]map[tSymbol]tAmount
+	AccountDepositBills map[tUser]map[tSymbol]tBill
+	// internal account for token bill(borrow)
+	AccountBorrowBills map[tUser]map[tSymbol]tBill
 
 	Pools map[tSymbol]TokenPool
 
@@ -40,8 +40,8 @@ type Billbank struct {
 
 func New() *Billbank {
 	return &Billbank{
-		AccountBills:   map[tUser]map[tSymbol]tBill{},
-		AccountBorrows: map[tUser]map[tSymbol]tAmount{},
+		AccountDepositBills: map[tUser]map[tSymbol]tBill{},
+		AccountBorrowBills:  map[tUser]map[tSymbol]tBill{},
 		Pools: map[tSymbol]TokenPool{
 			"ETH": TokenPool{},
 			"DAI": TokenPool{},
@@ -62,14 +62,14 @@ func (b *Billbank) Deposit(amount float64, symbol, user string) error {
 	}
 
 	// update user account bill
-	if accountBill, ok := b.AccountBills[user]; ok {
+	if accountBill, ok := b.AccountDepositBills[user]; ok {
 		if _, ok := accountBill[symbol]; ok {
-			b.AccountBills[user][symbol] += bill
+			b.AccountDepositBills[user][symbol] += bill
 		} else {
-			b.AccountBills[user][symbol] = bill
+			b.AccountDepositBills[user][symbol] = bill
 		}
 	} else {
-		b.AccountBills[user] = map[tSymbol]tBill{symbol: bill}
+		b.AccountDepositBills[user] = map[tSymbol]tBill{symbol: bill}
 	}
 
 	// update pool
@@ -85,14 +85,14 @@ func (b *Billbank) Withdraw(bill float64, symbol, user string) (amount float64, 
 	pool := b.getPool(symbol)
 
 	// check bill
-	if _, ok := b.AccountBills[user]; !ok {
+	if _, ok := b.AccountDepositBills[user]; !ok {
 		return 0, fmt.Errorf("user not had deposit. user: %v", user)
 	}
-	if _, ok := b.AccountBills[user][symbol]; !ok {
+	if _, ok := b.AccountDepositBills[user][symbol]; !ok {
 		return 0, fmt.Errorf("user not had deposit. user: %v, token: %v", user, symbol)
 	}
-	if bill > b.AccountBills[user][symbol] {
-		return 0, fmt.Errorf("not enough bill for withdraw. user: %v, acutal bill: %v", user, b.AccountBills[user][symbol])
+	if bill > b.AccountDepositBills[user][symbol] {
+		return 0, fmt.Errorf("not enough bill for withdraw. user: %v, acutal bill: %v", user, b.AccountDepositBills[user][symbol])
 	}
 	// check balance of supply
 	if amount > pool.GetCash() {
@@ -103,7 +103,7 @@ func (b *Billbank) Withdraw(bill float64, symbol, user string) (amount float64, 
 	amount = bill * (pool.Supply / pool.SupplyBill)
 
 	// update user account bill
-	b.AccountBills[user][symbol] -= bill
+	b.AccountDepositBills[user][symbol] -= bill
 
 	// update pool
 	pool.SupplyBill -= bill
@@ -122,18 +122,26 @@ func (b *Billbank) Borrow(amount float64, symbol, user string) error {
 		return fmt.Errorf("not enough token for borrow. amount: %v, cash: %v", amount, pool.GetCash())
 	}
 
+	// TODO
+	// calcuate bill
+	// bill := amount
+	// if pool.BorrowBill != 0 && pool.Borrow != 0 {
+	// 	bill = amount * (pool.BorrowBill / pool.Borrow)
+	// }
+
 	// update user account borrow
-	if accountBorrow, ok := b.AccountBorrows[user]; ok {
+	if accountBorrow, ok := b.AccountBorrowBills[user]; ok {
 		if _, ok := accountBorrow[symbol]; ok {
-			b.AccountBorrows[user][symbol] += amount
+			b.AccountBorrowBills[user][symbol] += amount
 		} else {
-			b.AccountBorrows[user][symbol] = amount
+			b.AccountBorrowBills[user][symbol] = amount
 		}
 	} else {
-		b.AccountBorrows[user] = map[tSymbol]tAmount{symbol: amount}
+		b.AccountBorrowBills[user] = map[tSymbol]tBill{symbol: amount}
 	}
 
 	// update borrow
+	// pool.BorrowBill += bill
 	pool.Borrow += amount
 	b.Pools[symbol] = pool
 
@@ -145,18 +153,18 @@ func (b *Billbank) Repay(amount float64, symbol, user string) error {
 	pool := b.getPool(symbol)
 
 	// check borrow
-	if _, ok := b.AccountBorrows[user]; !ok {
+	if _, ok := b.AccountBorrowBills[user]; !ok {
 		return fmt.Errorf("user not had borrow. user: %v", user)
 	}
-	if _, ok := b.AccountBorrows[user][symbol]; !ok {
+	if _, ok := b.AccountBorrowBills[user][symbol]; !ok {
 		return fmt.Errorf("user not had borrow. user: %v, token: %v", user, symbol)
 	}
-	if amount > b.AccountBorrows[user][symbol] {
-		return fmt.Errorf("too much amount to repay. user: %v, need repay: %v", user, b.AccountBorrows[user][symbol])
+	if amount > b.AccountBorrowBills[user][symbol] {
+		return fmt.Errorf("too much amount to repay. user: %v, need repay: %v", user, b.AccountBorrowBills[user][symbol])
 	}
 
 	// update user account borrow
-	b.AccountBorrows[user][symbol] -= amount
+	b.AccountBorrowBills[user][symbol] -= amount
 
 	// update borrow
 	pool.Borrow -= amount

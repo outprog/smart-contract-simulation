@@ -10,3 +10,4 @@ Todolist:
 - [ ] liquidate borrow
 - [ ] oracle
 - [ ] collateral
+- [ ] rate model
