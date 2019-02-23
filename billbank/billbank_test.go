@@ -53,12 +53,12 @@ func TestWithdraw(t *testing.T) {
 func TestBorrow(t *testing.T) {
 	b := New()
 
-	err := b.Borrow(10.0, "ETH")
+	err := b.Borrow(10.0, "ETH", "bob")
 	assert.EqualError(t, errors.New("not enough token for borrow. amount: 10, cash: 0"), err.Error())
 
 	b.Deposit(100.0, "ETH", "alice")
 
-	err = b.Borrow(10.0, "ETH")
+	err = b.Borrow(10.0, "ETH", "bob")
 	assert.NoError(t, err)
 	assert.Equal(t, 10.0, b.Pools["ETH"].Borrow)
 }
@@ -69,18 +69,18 @@ func TestLiquidate(t *testing.T) {
 
 	b.BlockNumber = 1
 	b.Deposit(100.0, "ETH", "alice")
-	b.Borrow(10.0, "ETH")
+	b.Borrow(10.0, "ETH", "bob")
 
 	b.BlockNumber = 2
 	b.Deposit(0.0, "ETH", "alice")
 	assert.Equal(t, 100.1, b.Pools["ETH"].Supply)
 
 	b.BlockNumber = 4
-	b.Borrow(10.0, "ETH")
+	b.Borrow(10.0, "ETH", "bob")
 	assert.Equal(t, 100.3, b.Pools["ETH"].Supply)
 
 	b.BlockNumber = 10
-	b.Borrow(0.0, "ETH")
+	b.Borrow(0.0, "ETH", "bob")
 	assert.Equal(t, 100.3+20*6*0.01, b.Pools["ETH"].Supply)
 }
 
@@ -89,7 +89,7 @@ func TestDepositInterest(t *testing.T) {
 
 	b.BlockNumber = 1
 	b.Deposit(100.0, "ETH", "alice")
-	b.Borrow(10.0, "ETH")
+	b.Borrow(10.0, "ETH", "bob")
 
 	b.BlockNumber = 10
 	// this 90.0 is bill. bill price auto increase when borrow is not 0.

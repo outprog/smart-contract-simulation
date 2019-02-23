@@ -8,6 +8,7 @@ import (
 type tUser = string
 type tSymbol = string
 type tBill = float64
+type tAmount = float64
 
 type TokenPool struct {
 	SupplyBill float64
@@ -24,7 +25,10 @@ func (t *TokenPool) GetCash() float64 {
 }
 
 type Billbank struct {
+	// internal account for token bill(deposit)
 	AccountBills map[tUser]map[tSymbol]tBill
+	// internal account for token amount(borrow)
+	AccountBorrows map[tUser]map[tSymbol]tAmount
 
 	Pools map[tSymbol]TokenPool
 
@@ -36,7 +40,8 @@ type Billbank struct {
 
 func New() *Billbank {
 	return &Billbank{
-		AccountBills: map[tUser]map[tSymbol]tBill{},
+		AccountBills:   map[tUser]map[tSymbol]tBill{},
+		AccountBorrows: map[tUser]map[tSymbol]tAmount{},
 		Pools: map[tSymbol]TokenPool{
 			"ETH": TokenPool{},
 			"DAI": TokenPool{},
@@ -108,13 +113,24 @@ func (b *Billbank) Withdraw(bill float64, symbol, user string) (amount float64, 
 	return
 }
 
-func (b *Billbank) Borrow(amount float64, symbol string) error {
+func (b *Billbank) Borrow(amount float64, symbol, user string) error {
 	b.liquidate(symbol)
 	pool := b.getPool(symbol)
 
 	// check cash of pool
 	if amount > pool.GetCash() {
 		return fmt.Errorf("not enough token for borrow. amount: %v, cash: %v", amount, pool.GetCash())
+	}
+
+	// update user account borrow
+	if accountBorrow, ok := b.AccountBorrows[user]; ok {
+		if _, ok := accountBorrow[symbol]; ok {
+			b.AccountBorrows[user][symbol] += amount
+		} else {
+			b.AccountBorrows[user][symbol] = amount
+		}
+	} else {
+		b.AccountBorrows[user] = map[tSymbol]tAmount{symbol: amount}
 	}
 
 	// update borrow
@@ -124,7 +140,7 @@ func (b *Billbank) Borrow(amount float64, symbol string) error {
 	return nil
 }
 
-func (b *Billbank) Repay(amount float64, symbol string) error {
+func (b *Billbank) Repay(amount float64, symbol, user string) error {
 	b.liquidate(symbol)
 	return nil
 }
