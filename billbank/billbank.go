@@ -50,69 +50,6 @@ func New() *Billbank {
 		borrowRate:  0.01,
 	}
 }
-
-func (b *Billbank) Deposit(amount float64, symbol, user string) error {
-	b.liquidate(symbol)
-	pool := b.getPool(symbol)
-
-	// calcuate bill
-	bill := amount
-	if pool.SupplyBill != 0 && pool.Supply != 0 {
-		bill = amount * (pool.SupplyBill / pool.Supply)
-	}
-
-	// update user account bill
-	if accountBill, ok := b.AccountDepositBills[user]; ok {
-		if _, ok := accountBill[symbol]; ok {
-			b.AccountDepositBills[user][symbol] += bill
-		} else {
-			b.AccountDepositBills[user][symbol] = bill
-		}
-	} else {
-		b.AccountDepositBills[user] = map[tSymbol]tBill{symbol: bill}
-	}
-
-	// update pool
-	pool.SupplyBill += bill
-	pool.Supply += amount
-	b.Pools[symbol] = pool
-
-	return nil
-}
-
-func (b *Billbank) Withdraw(bill float64, symbol, user string) (amount float64, err error) {
-	b.liquidate(symbol)
-	pool := b.getPool(symbol)
-
-	// check bill
-	if _, ok := b.AccountDepositBills[user]; !ok {
-		return 0, fmt.Errorf("user not had deposit. user: %v", user)
-	}
-	if _, ok := b.AccountDepositBills[user][symbol]; !ok {
-		return 0, fmt.Errorf("user not had deposit. user: %v, token: %v", user, symbol)
-	}
-	if bill > b.AccountDepositBills[user][symbol] {
-		return 0, fmt.Errorf("not enough bill for withdraw. user: %v, acutal bill: %v", user, b.AccountDepositBills[user][symbol])
-	}
-	// check balance of supply
-	if amount > pool.GetCash() {
-		return 0, fmt.Errorf("not enough token for withdraw. amount: %v, cash %v", amount, pool.GetCash())
-	}
-
-	// calcuate amount
-	amount = bill * (pool.Supply / pool.SupplyBill)
-
-	// update user account bill
-	b.AccountDepositBills[user][symbol] -= bill
-
-	// update pool
-	pool.SupplyBill -= bill
-	pool.Supply -= amount
-	b.Pools[symbol] = pool
-
-	return
-}
-
 func (b *Billbank) Borrow(amount float64, symbol, user string) error {
 	b.liquidate(symbol)
 	pool := b.getPool(symbol)
