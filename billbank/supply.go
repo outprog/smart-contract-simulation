@@ -64,7 +64,7 @@ func (b *Billbank) Withdraw(amount float64, symbol, user string) (err error) {
 		return fmt.Errorf("not enough token for withdraw. amount: %v, cash %v", amount, pool.GetCash())
 	}
 
-	// calcuate amount
+	// calcuate bill
 	bill := amount * (pool.SupplyBill / pool.Supply)
 
 	// update user account bill
