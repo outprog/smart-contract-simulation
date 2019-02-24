@@ -18,7 +18,9 @@ func (b *Billbank) BorrowBalanceOf(symbol, user string) float64 {
 	}
 
 	// calcuate amount
-	return bill * (pool.Borrow / pool.BorrowBill)
+	// current block liquidated, growth is zero
+	growth := b.calculateGrowth(symbol)
+	return bill * ((pool.Borrow + growth) / pool.BorrowBill)
 }
 
 func (b *Billbank) Borrow(amount float64, symbol, user string) error {

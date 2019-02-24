@@ -18,7 +18,9 @@ func (b *Billbank) SupplyBalanceOf(symbol, user string) float64 {
 	}
 
 	// calcuate amount
-	return bill * (pool.Supply / pool.SupplyBill)
+	// current block liquidated, growth is zero
+	growth := b.calculateGrowth(symbol)
+	return bill * ((pool.Supply + growth) / pool.SupplyBill)
 }
 
 func (b *Billbank) Deposit(amount float64, symbol, user string) error {

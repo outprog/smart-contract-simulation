@@ -54,6 +54,18 @@ func New() *Billbank {
 func (b *Billbank) liquidate(symbol string) {
 	pool := b.getPool(symbol)
 
+	growth := b.calculateGrowth(symbol)
+	pool.Supply += growth
+	pool.Borrow += growth
+
+	// update pool
+	pool.liquidateIndex = b.BlockNumber
+	b.Pools[symbol] = pool
+}
+
+func (b *Billbank) calculateGrowth(symbol string) float64 {
+	pool := b.getPool(symbol)
+
 	growth := 0.0
 	borrow := pool.Borrow
 	if borrow != 0.0 {
@@ -69,12 +81,7 @@ func (b *Billbank) liquidate(symbol string) {
 		)
 		growth = borrow - pool.Borrow
 	}
-	pool.Supply += growth
-	pool.Borrow += growth
-
-	// update pool
-	pool.liquidateIndex = b.BlockNumber
-	b.Pools[symbol] = pool
+	return growth
 }
 
 func (b *Billbank) getPool(symbol string) (pool TokenPool) {
