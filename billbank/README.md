@@ -7,7 +7,8 @@ Todolist:
 - [x] Borrow
 - [x] Repay
 - [x] liquidate supply
-- [ ] liquidate borrow
+- [x] liquidate borrow
+- [ ] auto calcuate balance of user
 - [ ] oracle
 - [ ] collateral
 - [ ] rate model

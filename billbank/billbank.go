@@ -2,6 +2,7 @@ package billbank
 
 import (
 	"log"
+	"math"
 )
 
 type tUser = string
@@ -15,7 +16,7 @@ type TokenPool struct {
 	Borrow     float64
 
 	// last liquidate blockNumber
-	borrowIndex uint64
+	liquidateIndex uint64
 }
 
 // GetCash Cash = Supply - Borrow
@@ -53,14 +54,26 @@ func New() *Billbank {
 func (b *Billbank) liquidate(symbol string) {
 	pool := b.getPool(symbol)
 
-	receivable := 0.0
-	if pool.Borrow != 0.0 {
-		receivable = pool.Borrow * b.borrowRate * float64(b.BlockNumber-pool.borrowIndex)
+	growth := 0.0
+	borrow := pool.Borrow
+	if borrow != 0.0 {
+		// Compound interest
+		// formula:
+		//		b: borrow
+		//		r: rate
+		//		n: block number
+		//		b = b * (1+r)^n
+		borrow = borrow * math.Pow(
+			1.0+b.borrowRate,
+			float64(b.BlockNumber-pool.liquidateIndex),
+		)
+		growth = borrow - pool.Borrow
 	}
-	pool.Supply += receivable
+	pool.Supply += growth
+	pool.Borrow += growth
 
 	// update pool
-	pool.borrowIndex = b.BlockNumber
+	pool.liquidateIndex = b.BlockNumber
 	b.Pools[symbol] = pool
 }
 
