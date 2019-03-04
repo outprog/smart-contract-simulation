@@ -23,6 +23,10 @@ func (b *Billbank) SupplyBalanceOf(symbol, user string) float64 {
 	return bill * ((pool.Supply + growth) / pool.SupplyBill)
 }
 
+func (b *Billbank) SupplyValueOf(symbol, user string) float64 {
+	return b.SupplyBalanceOf(symbol, user) * b.Oralcer.GetPrice(symbol)
+}
+
 func (b *Billbank) Deposit(amount float64, symbol, user string) error {
 	b.liquidate(symbol)
 	pool := b.getPool(symbol)

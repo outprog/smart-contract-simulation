@@ -23,6 +23,17 @@ func (b *Billbank) BorrowBalanceOf(symbol, user string) float64 {
 	return bill * ((pool.Borrow + growth) / pool.BorrowBill)
 }
 
+func (b *Billbank) BorrowValueOf(symbol, user string) float64 {
+	return b.BorrowValueEstimate(
+		b.BorrowBalanceOf(symbol, user),
+		symbol,
+	)
+}
+
+func (b *Billbank) BorrowValueEstimate(amount float64, symbol string) float64 {
+	return amount * b.Oralcer.GetPrice(symbol)
+}
+
 func (b *Billbank) Borrow(amount float64, symbol, user string) error {
 	b.liquidate(symbol)
 	pool := b.getPool(symbol)

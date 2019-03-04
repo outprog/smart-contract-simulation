@@ -46,3 +46,25 @@ func TestGrowth(t *testing.T) {
 	assert.Equal(t, 10.0+growth, b.BorrowBalanceOf("ETH", "bob"))
 	assert.Equal(t, 10.0+growth, b.Pools["ETH"].Borrow)
 }
+
+func TestNetValue(t *testing.T) {
+	b := New()
+
+	b.Deposit(1000.0, "DAI", "bob")
+	assert.Equal(t, 0.0, b.NetValueOf("alice"))
+
+	b.Deposit(10.0, "ETH", "alice")
+	assert.Equal(t, 0.0, b.NetValueOf("alice"))
+	b.Oralcer.SetPrice("ETH", 100.1)
+	assert.Equal(t, 1001.0, b.NetValueOf("alice"))
+
+	b.Deposit(11.1, "DAI", "alice")
+	b.Oralcer.SetPrice("DAI", 1.01)
+	assert.Equal(t, 1001.0+11.1*1.01, b.NetValueOf("alice"))
+
+	b.Withdraw(11.1, "DAI", "alice")
+	assert.Equal(t, 1001.0, b.NetValueOf("alice"))
+
+	b.Borrow(900, "DAI", "alice")
+	assert.Equal(t, 1001.0-900*1.01, b.NetValueOf("alice"))
+}

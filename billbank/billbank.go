@@ -8,6 +8,7 @@ import (
 type tUser = string
 type tSymbol = string
 type tBill = float64
+type tPrice = float64
 
 type TokenPool struct {
 	SupplyBill float64
@@ -32,6 +33,8 @@ type Billbank struct {
 
 	Pools map[tSymbol]TokenPool
 
+	Oralcer *Oracle
+
 	// BlockNumber simulate
 	BlockNumber uint64
 	// borrowRate every block
@@ -46,6 +49,7 @@ func New() *Billbank {
 			"ETH": TokenPool{},
 			"DAI": TokenPool{},
 		},
+		Oralcer:     NewOracle(),
 		BlockNumber: 1,
 		borrowRate:  0.01,
 	}
@@ -90,4 +94,26 @@ func (b *Billbank) getPool(symbol string) (pool TokenPool) {
 		log.Panicf("not support token: %v", symbol)
 	}
 	return
+}
+
+func (b *Billbank) NetValueOf(user string) float64 {
+	supplyValue := 0.0
+	if acc, ok := b.AccountDepositBills[user]; ok {
+		for sym, bill := range acc {
+			if bill != 0.0 {
+				supplyValue += b.SupplyValueOf(sym, user)
+			}
+		}
+	}
+
+	borrowValue := 0.0
+	if acc, ok := b.AccountBorrowBills[user]; ok {
+		for sym, bill := range acc {
+			if bill != 0.0 {
+				borrowValue += b.BorrowValueOf(sym, user)
+			}
+		}
+	}
+
+	return supplyValue - borrowValue
 }

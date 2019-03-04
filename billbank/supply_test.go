@@ -54,3 +54,13 @@ func TestWithdraw(t *testing.T) {
 	assert.Equal(t, 1.0, b.AccountDepositBills["alice"]["ETH"])
 	assert.Equal(t, 1.0, b.SupplyBalanceOf("ETH", "alice"))
 }
+
+func TestSupplyValueOf(t *testing.T) {
+	b := New()
+
+	b.Deposit(100.1, "ETH", "alice")
+	assert.Equal(t, 0.0, b.SupplyValueOf("ETH", "alice"))
+
+	b.Oralcer.SetPrice("ETH", 100.0)
+	assert.Equal(t, 10010.0, b.SupplyValueOf("ETH", "alice"))
+}

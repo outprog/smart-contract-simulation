@@ -49,3 +49,19 @@ func TestRepay(t *testing.T) {
 	assert.Equal(t, 0.0, b.Pools["ETH"].Borrow)
 	assert.Equal(t, 0.0, b.BorrowBalanceOf("ETH", "bob"))
 }
+
+func TestBorrowValueOf(t *testing.T) {
+	b := New()
+
+	b.Deposit(10.0, "ETH", "alice")
+	b.Borrow(10.0, "ETH", "bob")
+
+	assert.Equal(t, 0.0, b.BorrowValueOf("ETH", "bob"))
+
+	b.Oralcer.SetPrice("ETH", 100.1)
+	assert.Equal(t, 1001.0, b.BorrowValueOf("ETH", "bob"))
+	assert.Equal(t, 0.0, b.BorrowValueOf("ETH", "alice"))
+
+	b.Oralcer.SetPrice("ETH", 100.2)
+	assert.Equal(t, 1002.0, b.BorrowValueOf("ETH", "bob"))
+}
