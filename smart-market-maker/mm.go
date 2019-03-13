@@ -56,6 +56,7 @@ func (m *MMContract) String() string {
 		"CurrentPirce:         %v\n"+
 		"CurrentValue(DAI):    %v\n"+
 		"CurrentValue(ETH):    %v\n"+
+		"TotalValue:           %v\n"+
 		"---------------------------------------------",
 		m.BalanceOfETH,
 		m.BalanceOfDAI,
@@ -64,6 +65,7 @@ func (m *MMContract) String() string {
 		m.Price(),
 		m.BalanceOfDAI+m.BalanceOfETH*m.Price(),
 		m.BalanceOfETH+m.BalanceOfDAI/m.Price(),
+		m.BalanceOfDAI+m.BalanceOfETH*m.Price()+m.BalanceOfETH+m.BalanceOfDAI/m.Price(),
 	)
 }
 
